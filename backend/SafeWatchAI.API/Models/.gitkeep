@@ -1,0 +1,3 @@
+# Models
+# This directory contains the data entities and schemas for vehicle monitoring.
+# Includes DTOs, domain models, and request/response contracts.
