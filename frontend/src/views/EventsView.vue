@@ -2,9 +2,14 @@
 /**
  * EventsView.vue
  * Pantalla de eventos detectados — Registro completo de vehículos identificados.
- * Incluye filtros de búsqueda simulados y tabla detallada con datos estáticos.
+ * Incluye filtros de búsqueda simulados y tabla detallada conectada al backend.
  */
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { API_BASE_URL } from '../config'
+
+// Estado de la red
+const loading = ref(true)
+const error = ref(null)
 
 // Estado de los filtros
 const searchPlate = ref('')
@@ -13,6 +18,10 @@ const selectedStatus = ref('')
 
 // Opciones de zonas
 const zones = [
+  'Sector Industrial C',
+  'Área de Carga',
+  'Entrada Norte-1',
+  'Entrada Sur-2',
   'Entrada Principal',
   'Entrada Norte',
   'Zona Industrial C',
@@ -23,97 +32,127 @@ const zones = [
   'Acceso VIP'
 ]
 
-// Datos estáticos de eventos
+// Datos estáticos de eventos (Fallback)
 const events = ref([
   {
     id: 1,
-    datetime: '2025-06-29 18:42:15',
-    plate: 'ABC-1234',
-    zone: 'Entrada Principal',
-    vehicleType: 'Sedán',
-    status: 'AUTORIZADO',
-    confidence: 98.5
+    fechaHoraDeteccion: '2025-06-29 18:42:15',
+    placa: 'ABC-1234',
+    zonaMonitoreada: 'Entrada Principal',
+    tipoVehiculo: 'Sedán',
+    estado: 'AUTORIZADO',
+    indiceRiesgo: 'Bajo'
   },
   {
     id: 2,
-    datetime: '2025-06-29 18:38:07',
-    plate: 'XYZ-9876',
-    zone: 'Zona Industrial C',
-    vehicleType: 'Camioneta',
-    status: 'SOSPECHOSO',
-    confidence: 95.2
+    fechaHoraDeteccion: '2025-06-29 18:38:07',
+    placa: 'XYZ-9876',
+    zonaMonitoreada: 'Zona Industrial C',
+    tipoVehiculo: 'Camioneta',
+    estado: 'SOSPECHOSO',
+    indiceRiesgo: 'Alto'
   },
   {
     id: 3,
-    datetime: '2025-06-29 18:35:22',
-    plate: 'DEF-5678',
-    zone: 'Estacionamiento B',
-    vehicleType: 'SUV',
-    status: 'AUTORIZADO',
-    confidence: 99.1
+    fechaHoraDeteccion: '2025-06-29 18:35:22',
+    placa: 'DEF-5678',
+    zonaMonitoreada: 'Estacionamiento B',
+    tipoVehiculo: 'SUV',
+    estado: 'AUTORIZADO',
+    indiceRiesgo: 'Bajo'
   },
   {
     id: 4,
-    datetime: '2025-06-29 18:31:49',
-    plate: 'GHI-3456',
-    zone: 'Perímetro Este',
-    vehicleType: 'Sedán',
-    status: 'AUTORIZADO',
-    confidence: 97.3
+    fechaHoraDeteccion: '2025-06-29 18:31:49',
+    placa: 'GHI-3456',
+    zonaMonitoreada: 'Perímetro Este',
+    tipoVehiculo: 'Sedán',
+    estado: 'AUTORIZADO',
+    indiceRiesgo: 'Bajo'
   },
   {
     id: 5,
-    datetime: '2025-06-29 18:28:11',
-    plate: 'JKL-7890',
-    zone: 'Entrada Norte',
-    vehicleType: 'Pickup',
-    status: 'SOSPECHOSO',
-    confidence: 92.7
+    fechaHoraDeteccion: '2025-06-29 18:28:11',
+    placa: 'JKL-7890',
+    zonaMonitoreada: 'Entrada Norte',
+    tipoVehiculo: 'Pickup',
+    estado: 'SOSPECHOSO',
+    indiceRiesgo: 'Alto'
   },
   {
     id: 6,
-    datetime: '2025-06-29 18:24:55',
-    plate: 'MNO-2468',
-    zone: 'Zona de Carga',
-    vehicleType: 'Camión',
-    status: 'AUTORIZADO',
-    confidence: 96.8
+    fechaHoraDeteccion: '2025-06-29 18:24:55',
+    placa: 'MNO-2468',
+    zonaMonitoreada: 'Zona de Carga',
+    tipoVehiculo: 'Camión',
+    estado: 'AUTORIZADO',
+    indiceRiesgo: 'Bajo'
   },
   {
     id: 7,
-    datetime: '2025-06-29 18:19:33',
-    plate: 'PQR-1357',
-    zone: 'Acceso VIP',
-    vehicleType: 'Sedán Ejecutivo',
-    status: 'AUTORIZADO',
-    confidence: 99.7
+    fechaHoraDeteccion: '2025-06-29 18:19:33',
+    placa: 'PQR-1357',
+    zonaMonitoreada: 'Acceso VIP',
+    tipoVehiculo: 'Sedán Ejecutivo',
+    estado: 'AUTORIZADO',
+    indiceRiesgo: 'Bajo'
   },
   {
     id: 8,
-    datetime: '2025-06-29 18:14:08',
-    plate: 'STU-8642',
-    zone: 'Perímetro Sur',
-    vehicleType: 'Van',
-    status: 'SOSPECHOSO',
-    confidence: 88.4
+    fechaHoraDeteccion: '2025-06-29 18:14:08',
+    placa: 'STU-8642',
+    zonaMonitoreada: 'Perímetro Sur',
+    tipoVehiculo: 'Van',
+    estado: 'SOSPECHOSO',
+    indiceRiesgo: 'Medio'
   }
 ])
+
+async function fetchVehicleEvents() {
+  try {
+    loading.value = true
+    error.value = null
+    const response = await fetch(API_BASE_URL)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    // Mapeo de datos del backend
+    events.value = data.map(e => {
+      const dateObj = new Date(e.fechaHoraDeteccion)
+      return {
+        ...e,
+        // Formateo para la vista
+        fechaHoraDeteccion: dateObj.toISOString().replace('T', ' ').substring(0, 19)
+      }
+    })
+  } catch (err) {
+    console.error('Error fetching vehicle events:', err)
+    error.value = 'No se pudo conectar con el servidor backend. Mostrando datos de simulación.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchVehicleEvents()
+})
 
 // Filtrado reactivo
 const filteredEvents = computed(() => {
   return events.value.filter(event => {
     const matchPlate = !searchPlate.value ||
-      event.plate.toLowerCase().includes(searchPlate.value.toLowerCase())
-    const matchZone = !selectedZone.value || event.zone === selectedZone.value
-    const matchStatus = !selectedStatus.value || event.status === selectedStatus.value
+      event.placa.toLowerCase().includes(searchPlate.value.toLowerCase())
+    const matchZone = !selectedZone.value || event.zonaMonitoreada === selectedZone.value
+    const matchStatus = !selectedStatus.value || event.estado === selectedStatus.value
     return matchPlate && matchZone && matchStatus
   })
 })
 
 // Contadores
 const totalEvents = computed(() => filteredEvents.value.length)
-const authorizedCount = computed(() => filteredEvents.value.filter(e => e.status === 'AUTORIZADO').length)
-const suspiciousCount = computed(() => filteredEvents.value.filter(e => e.status === 'SOSPECHOSO').length)
+const authorizedCount = computed(() => filteredEvents.value.filter(e => e.estado === 'AUTORIZADO').length)
+const suspiciousCount = computed(() => filteredEvents.value.filter(e => e.estado === 'SOSPECHOSO').length)
 
 function clearFilters() {
   searchPlate.value = ''
@@ -145,6 +184,19 @@ function clearFilters() {
           <span class="text-xs text-red-400 font-medium">{{ suspiciousCount }}</span>
         </div>
       </div>
+    </div>
+
+    <!-- Mensajes de estado de red -->
+    <div v-if="loading" class="flex items-center justify-center p-4 bg-slate-800/50 rounded-xl border border-emerald-500/30">
+      <div class="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mr-3"></div>
+      <span class="text-emerald-400 font-medium text-sm">Cargando eventos en tiempo real...</span>
+    </div>
+    
+    <div v-if="error" class="flex items-center p-4 bg-amber-950/30 rounded-xl border border-amber-500/30">
+      <svg class="w-5 h-5 text-amber-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <span class="text-amber-400 font-medium text-sm">{{ error }}</span>
     </div>
 
     <!-- Filtros de Búsqueda -->
@@ -233,15 +285,15 @@ function clearFilters() {
               <!-- Fecha/Hora -->
               <td class="px-6 py-4">
                 <div class="flex flex-col">
-                  <span class="text-sm text-slate-200">{{ event.datetime.split(' ')[0] }}</span>
-                  <span class="text-xs text-slate-400 font-mono">{{ event.datetime.split(' ')[1] }}</span>
+                  <span class="text-sm text-slate-200">{{ event.fechaHoraDeteccion.split(' ')[0] }}</span>
+                  <span class="text-xs text-slate-400 font-mono">{{ event.fechaHoraDeteccion.split(' ')[1] }}</span>
                 </div>
               </td>
 
               <!-- Placa -->
               <td class="px-6 py-4">
                 <span class="inline-flex items-center px-3 py-1.5 rounded-md bg-slate-700/60 text-sm font-mono font-bold text-slate-100 border border-slate-600/30 tracking-wider">
-                  {{ event.plate }}
+                  {{ event.placa }}
                 </span>
               </td>
 
@@ -252,13 +304,13 @@ function clearFilters() {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                   </svg>
-                  <span class="text-sm text-slate-300">{{ event.zone }}</span>
+                  <span class="text-sm text-slate-300">{{ event.zonaMonitoreada }}</span>
                 </div>
               </td>
 
               <!-- Tipo de Vehículo -->
               <td class="px-6 py-4">
-                <span class="text-sm text-slate-300">{{ event.vehicleType }}</span>
+                <span class="text-sm text-slate-300">{{ event.tipoVehiculo }}</span>
               </td>
 
               <!-- Estado -->
@@ -266,18 +318,21 @@ function clearFilters() {
                 <span
                   :class="[
                     'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider',
-                    event.status === 'AUTORIZADO'
+                    event.estado === 'AUTORIZADO'
                       ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/20'
-                      : 'bg-red-950 text-red-400 border border-red-500/20'
+                      : event.estado === 'SOSPECHOSO' 
+                        ? 'bg-red-950 text-red-400 border border-red-500/20'
+                        : 'bg-amber-950 text-amber-400 border border-amber-500/20'
                   ]"
                 >
                   <span
                     :class="[
                       'w-1.5 h-1.5 rounded-full',
-                      event.status === 'AUTORIZADO' ? 'bg-emerald-400' : 'bg-red-400 animate-pulse'
+                      event.estado === 'AUTORIZADO' ? 'bg-emerald-400' : 
+                      event.estado === 'SOSPECHOSO' ? 'bg-red-400 animate-pulse' : 'bg-amber-400'
                     ]"
                   ></span>
-                  {{ event.status }}
+                  {{ event.estado }}
                 </span>
               </td>
 
@@ -294,7 +349,7 @@ function clearFilters() {
                     </svg>
                   </button>
                   <button
-                    v-if="event.status === 'SOSPECHOSO'"
+                    v-if="event.estado === 'SOSPECHOSO'"
                     class="p-2 rounded-lg text-slate-400 hover:bg-red-950/50 hover:text-red-400 transition-all duration-200"
                     title="Investigar"
                   >
@@ -307,7 +362,7 @@ function clearFilters() {
             </tr>
 
             <!-- Estado vacío -->
-            <tr v-if="filteredEvents.length === 0">
+            <tr v-if="filteredEvents.length === 0 && !loading">
               <td colspan="6" class="px-6 py-12 text-center">
                 <div class="flex flex-col items-center gap-3">
                   <svg class="w-12 h-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1">

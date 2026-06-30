@@ -3,9 +3,14 @@
  * DashboardView.vue
  * Vista principal del panel de control de SafeWatch AI.
  * Incluye tarjetas de métricas, gráfico de actividad por hora,
- * tabla de últimos vehículos detectados y panel de alertas recientes.
+ * tabla de últimos vehículos detectados conectada al backend.
  */
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { API_BASE_URL } from '../config'
+
+// Estado de red para la tabla de vehículos
+const loading = ref(true)
+const error = ref(null)
 
 // Datos de métricas principales
 const metrics = ref([
@@ -77,7 +82,7 @@ const hourlyData = ref([
 
 const maxHourlyValue = Math.max(...hourlyData.value.map(d => d.value))
 
-// Datos de los últimos vehículos detectados
+// Datos de los últimos vehículos detectados (Fallback)
 const recentVehicles = ref([
   { time: '18:42:15', plate: 'ABC-1234', zone: 'Entrada Principal', status: 'AUTORIZADO' },
   { time: '18:38:07', plate: 'XYZ-9876', zone: 'Zona Industrial C', status: 'SOSPECHOSO' },
@@ -86,6 +91,35 @@ const recentVehicles = ref([
   { time: '18:28:11', plate: 'JKL-7890', zone: 'Entrada Norte', status: 'SOSPECHOSO' },
   { time: '18:24:55', plate: 'MNO-2468', zone: 'Zona de Carga', status: 'AUTORIZADO' }
 ])
+
+async function fetchRecentVehicles() {
+  try {
+    loading.value = true
+    error.value = null
+    const response = await fetch(API_BASE_URL)
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    const data = await response.json()
+    // Tomar los primeros 6 registros y mapearlos al formato esperado por DashboardView
+    recentVehicles.value = data.slice(0, 6).map(e => {
+      const dateObj = new Date(e.fechaHoraDeteccion)
+      return {
+        time: dateObj.toTimeString().split(' ')[0], // Extraer HH:MM:SS
+        plate: e.placa,
+        zone: e.zonaMonitoreada,
+        status: e.estado
+      }
+    })
+  } catch (err) {
+    console.error('Error fetching recent vehicles:', err)
+    error.value = 'No se pudo conectar con el servidor backend.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchRecentVehicles()
+})
 
 // Datos de alertas recientes
 const recentAlerts = ref([
@@ -273,10 +307,24 @@ const recentAlerts = ref([
         </div>
 
         <!-- Tabla de Últimos Vehículos Detectados -->
-        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl backdrop-blur-sm overflow-hidden">
-          <div class="px-6 py-4 border-b border-slate-700/50">
-            <h2 class="text-lg font-semibold text-slate-100">Últimos Vehículos Detectados</h2>
-            <p class="text-xs text-slate-400 mt-1">Registro en tiempo real de detecciones del sistema</p>
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl backdrop-blur-sm overflow-hidden relative">
+          <!-- Loading overlay -->
+          <div v-if="loading" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+            <div class="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+            <span class="text-xs text-emerald-400 font-medium tracking-wide">ACTUALIZANDO DATOS...</span>
+          </div>
+
+          <div class="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center">
+            <div>
+              <h2 class="text-lg font-semibold text-slate-100">Últimos Vehículos Detectados</h2>
+              <p class="text-xs text-slate-400 mt-1">Registro en tiempo real de detecciones del sistema</p>
+            </div>
+            <div v-if="error" class="flex items-center text-amber-400 text-xs">
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <span>{{ error }}</span>
+            </div>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full">
@@ -311,13 +359,16 @@ const recentAlerts = ref([
                         'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider',
                         vehicle.status === 'AUTORIZADO'
                           ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-red-950 text-red-400 border border-red-500/20'
+                          : vehicle.status === 'SOSPECHOSO' 
+                            ? 'bg-red-950 text-red-400 border border-red-500/20'
+                            : 'bg-amber-950 text-amber-400 border border-amber-500/20'
                       ]"
                     >
                       <span
                         :class="[
                           'w-1.5 h-1.5 rounded-full',
-                          vehicle.status === 'AUTORIZADO' ? 'bg-emerald-400' : 'bg-red-400'
+                          vehicle.status === 'AUTORIZADO' ? 'bg-emerald-400' : 
+                          vehicle.status === 'SOSPECHOSO' ? 'bg-red-400' : 'bg-amber-400'
                         ]"
                       ></span>
                       {{ vehicle.status }}
