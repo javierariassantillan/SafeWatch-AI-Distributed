@@ -1,0 +1,263 @@
+# ============================================================================
+# SafeWatch AI - .gitignore
+# Combined rules for .NET (Backend) and Node.js/Vue.js (Frontend)
+# ============================================================================
+
+# ============================================================================
+# .NET / C# / ASP.NET Core
+# ============================================================================
+
+## Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## Visual Studio / MSBuild
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+## Build outputs
+*.dll
+*.exe
+*.pdb
+*.cache
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.vspscc
+*.vssscc
+*.pidb
+*.svclog
+*.scc
+
+## NuGet
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nupkg
+**/packages/repositories.config
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## .NET Core
+project.nuget.cache
+
+## ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+## Windows image file caches
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+## Recycle Bin on external drives
+$RECYCLE.BIN/
+
+## Rider / JetBrains
+.idea/
+*.sln.iml
+
+## dotCover
+*.dotCover
+
+## StyleCop
+StyleCopReport.xml
+
+## .NET publish profiles
+*.pubxml
+!**/[Pp]ublish[Pp]rofiles/*.pubxml
+*.publishproj
+
+## NUnit
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+
+## ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+## Code Coverage
+*.coverage
+*.coveragexml
+
+## NCrunch
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+## Web workbench
+.sass-cache/
+
+## Installshield output
+[Ee]xpress/
+
+## DocProject
+DocProject/buildhelp/
+DocProject/Help/*.HxT
+DocProject/Help/*.HxC
+DocProject/Help/*.hhc
+DocProject/Help/*.hhk
+DocProject/Help/*.hhp
+DocProject/Help/Html2
+DocProject/Help/html
+
+## Backup & report files from converting old project file format
+_UpgradeReport_Files/
+Backup*/
+UpgradeLog*.XML
+UpgradeLog*.htm
+ServiceFabricBackup/
+
+## SQL Server files
+*.mdf
+*.ldf
+*.ndf
+
+## LightSwitch generated files
+GeneratedArtifacts/
+_Pvt_Extensions/
+ModelManifest.xml
+
+## MiniProfiler
+App_Data/*.mdf
+App_Data/*.ldf
+
+## Fakes Assemblies
+FakesAssemblies/
+
+## Entity Framework
+*.dbmdl
+
+## Local History for Visual Studio
+.localhistory/
+
+## BeatPulse Health Check
+healthchecksdb
+
+## Secrets & Environment
+appsettings.Development.json
+appsettings.Local.json
+*.pfx
+*.key
+
+# ============================================================================
+# Node.js / Vue.js / Frontend
+# ============================================================================
+
+## Dependencies
+node_modules/
+.pnp/
+.pnp.js
+.yarn/install-state.gz
+
+## Build output
+dist/
+dist-ssr/
+build/
+*.local
+
+## Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+
+## Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+## Editor directories and files
+*.sw?
+*.swo
+*.swp
+*~
+\#*\#
+
+## Vue / Vite specific
+*.vue.js
+*.vue.jsx
+
+## Testing
+coverage/
+*.lcov
+.nyc_output/
+
+## Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+## Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+## TypeScript
+*.tsbuildinfo
+
+## Misc
+.DS_Store
+
+# ============================================================================
+# General / Shared
+# ============================================================================
+
+## OS generated files
+Thumbs.db
+ehthumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+## IDE / Editor
+.vscode/settings.json
+.vscode/launch.json
+*.code-workspace
+
+## Docker (local overrides)
+docker-compose.override.yml
+.docker/
+
+## Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+## Misc secrets
+*.pem
+*.p12
+*.cert
