@@ -117,6 +117,49 @@ async function fetchRecentVehicles() {
   }
 }
 
+const uploading = ref(false)
+const uploadError = ref(null)
+const fileInput = ref(null)
+
+async function uploadVideo(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  uploading.value = true
+  uploadError.value = null
+
+  const formData = new FormData()
+  formData.append('video', file)
+
+  try {
+    const uploadUrl = API_BASE_URL.endsWith('/') 
+      ? `${API_BASE_URL}upload` 
+      : `${API_BASE_URL}/upload`
+
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    // Refrescar los últimos vehículos
+    await fetchRecentVehicles()
+
+    // Limpiar input de archivo
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
+  } catch (err) {
+    console.error('Error uploading video:', err)
+    uploadError.value = 'Error al procesar el video. Intente de nuevo.'
+  } finally {
+    uploading.value = false
+  }
+}
+
 onMounted(() => {
   fetchRecentVehicles()
 })
@@ -382,8 +425,52 @@ const recentAlerts = ref([
       </div>
 
       <!-- Panel de Alertas Recientes (1/3 del ancho) -->
-      <div class="xl:col-span-1">
-        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl backdrop-blur-sm overflow-hidden h-full">
+      <div class="xl:col-span-1 space-y-6">
+        <!-- Procesar Video de Cámara -->
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl backdrop-blur-sm p-6 relative">
+          <h2 class="text-lg font-semibold text-slate-100 mb-2">Procesar Video de Cámara</h2>
+          <p class="text-xs text-slate-400 mb-4">Sube un fragmento de grabación para ejecutar el análisis de inteligencia artificial y detección de patentes.</p>
+          
+          <div 
+            @click="!uploading && $refs.fileInput.click()"
+            class="relative border border-dashed border-slate-700 hover:border-slate-500 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 bg-slate-900/40 hover:bg-slate-900/60"
+            :class="{ 'opacity-50 cursor-not-allowed border-emerald-500/50 bg-emerald-950/10': uploading }"
+          >
+            <input 
+              type="file" 
+              ref="fileInput" 
+              class="hidden" 
+              accept=".mp4" 
+              @change="uploadVideo" 
+              :disabled="uploading"
+            />
+            
+            <div v-if="!uploading" class="flex flex-col items-center">
+              <!-- Icono de videocámara -->
+              <svg class="w-10 h-10 text-slate-400 mb-3 group-hover:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+              </svg>
+              <span class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 underline">Seleccionar clip de video (.mp4)</span>
+              <span class="text-[10px] text-slate-500 mt-1">Límite de tamaño: 50MB</span>
+            </div>
+            
+            <div v-else class="flex flex-col items-center text-center">
+              <div class="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+              <span class="text-xs text-emerald-400 font-medium animate-pulse">
+                Analizando flujos de video mediante SafeWatch Core AI...
+              </span>
+            </div>
+          </div>
+          
+          <div v-if="uploadError" class="mt-3 text-red-400 text-xs flex items-center">
+            <svg class="w-4 h-4 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span>{{ uploadError }}</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl backdrop-blur-sm overflow-hidden">
           <div class="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
             <div>
               <h2 class="text-lg font-semibold text-slate-100">Alertas Recientes</h2>
