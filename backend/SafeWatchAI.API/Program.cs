@@ -20,9 +20,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("SafeWatchAllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")  // Vite/Vue.js dev server
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
     });
 });
 

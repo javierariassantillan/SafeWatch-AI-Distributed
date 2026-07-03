@@ -261,3 +261,6 @@ docker-compose.override.yml
 *.pem
 *.p12
 *.cert
+
+## SQLite databases
+backend/SafeWatchAI.API/safewatch.db*
