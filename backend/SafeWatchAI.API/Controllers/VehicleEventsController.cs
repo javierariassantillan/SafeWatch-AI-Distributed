@@ -12,10 +12,12 @@ namespace SafeWatchAI.API.Controllers;
 public class VehicleEventsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IConfiguration _configuration;
 
-    public VehicleEventsController(ApplicationDbContext context)
+    public VehicleEventsController(ApplicationDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
     [HttpGet]
@@ -80,32 +82,43 @@ public class VehicleEventsController : ControllerBase
         _context.VehicleEvents.Add(newEvent);
         await _context.SaveChangesAsync();
 
-        // Integración con Telegram: Notificar al cuerpo de seguridad
-        using (var httpClient = new HttpClient())
+        // Obtener la configuración dinámica de Telegram
+        var botToken = _configuration["TelegramSettings:BotToken"];
+        var chatId = _configuration["TelegramSettings:ChatId"];
+
+        if (!string.IsNullOrEmpty(botToken) && !string.IsNullOrEmpty(chatId))
         {
-            var telegramUrl = "https://api.telegram.org/bot7725948190:AAGnK_zKxXWdfp05R1wX4p82Yd9M4L_zQwE/sendMessage";
-            var payload = new
+            // Integración con Telegram: Notificar al cuerpo de seguridad
+            using (var httpClient = new HttpClient())
             {
-                chat_id = "-4712958102",
-                text = "🚨 [SafeWatch AI] ALERTA CRÍTICA: Vehículo sospechoso detectado por cámara. Placa: PCR-7890. Zona: Perímetro Norte."
-            };
-
-            var jsonPayload = JsonSerializer.Serialize(payload);
-            var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-
-            try
-            {
-                var response = await httpClient.PostAsync(telegramUrl, content);
-                if (!response.IsSuccessStatusCode)
+                var telegramUrl = $"https://api.telegram.org/bot{botToken}/sendMessage";
+                var payload = new
                 {
-                    var errorMsg = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Error de Telegram API: {response.StatusCode} - {errorMsg}");
+                    chat_id = chatId,
+                    text = "🚨 [SafeWatch AI] ALERTA CRÍTICA: Vehículo sospechoso detectado por cámara. Placa: PCR-7890. Zona: Perímetro Norte."
+                };
+
+                try
+                {
+                    var jsonPayload = JsonSerializer.Serialize(payload);
+                    var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+                    var response = await httpClient.PostAsync(telegramUrl, content);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorMsg = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"[Cuidado] Las credenciales de Telegram son inválidas en el entorno local. Código de estado: {response.StatusCode} - {errorMsg}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Cuidado] Las credenciales de Telegram son inválidas en el entorno local o el bot no está accesible. Detalle: {ex.Message}");
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al enviar mensaje a Telegram: {ex.Message}");
-            }
+        }
+        else
+        {
+            Console.WriteLine("[Cuidado] La configuración de TelegramSettings no está definida en appsettings.json.");
         }
 
         return Ok(newEvent);
