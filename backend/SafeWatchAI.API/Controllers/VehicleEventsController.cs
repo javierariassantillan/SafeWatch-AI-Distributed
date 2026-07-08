@@ -66,7 +66,7 @@ public class VehicleEventsController : ControllerBase
         // IA Simulada: Creación de evento sospechoso extraído del video
         var newEvent = new VehicleEvent
         {
-            Placa = "PCR-7890",
+            Placa = "ES2774",
             FechaHoraDeteccion = DateTime.Now,
             ZonaMonitoreada = "Perímetro Norte",
             FrecuenciaIngreso = 4,
@@ -95,7 +95,7 @@ public class VehicleEventsController : ControllerBase
                 var payload = new
                 {
                     chat_id = chatId,
-                    text = "🚨 [SafeWatch AI] ALERTA CRÍTICA: Vehículo sospechoso detectado por cámara. Placa: PCR-7890. Zona: Perímetro Norte."
+                    text = "🚨 [SafeWatch AI] ALERTA CRÍTICA: Vehículo sospechoso detectado por cámara. Placa: ES2774. Zona: Perímetro Norte."
                 };
 
                 try
