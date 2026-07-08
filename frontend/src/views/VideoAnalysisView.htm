@@ -1,0 +1,248 @@
+<script setup>
+import { ref } from 'vue'
+
+const selectedFile = ref(null)
+const videoPreviewUrl = ref('')
+const isAnalyzing = ref(false)
+const progress = ref(0)
+const result = ref(null)
+const errorMessage = ref('')
+
+const API_UPLOAD_URL = 'https://localhost:7173/api/vehicle-events/upload'
+
+function handleFileChange(event) {
+  const file = event.target.files[0]
+
+  if (!file) return
+
+  selectedFile.value = file
+  videoPreviewUrl.value = URL.createObjectURL(file)
+  result.value = null
+  errorMessage.value = ''
+  progress.value = 0
+}
+
+async function analyzeVideo() {
+  if (!selectedFile.value) {
+    errorMessage.value = 'Seleccione un video antes de iniciar el análisis.'
+    return
+  }
+
+  isAnalyzing.value = true
+  result.value = null
+  errorMessage.value = ''
+  progress.value = 0
+
+  const interval = setInterval(() => {
+    if (progress.value < 90) {
+      progress.value += 10
+    }
+  }, 250)
+
+  try {
+    const formData = new FormData()
+    formData.append('video', selectedFile.value)
+
+    const response = await fetch(API_UPLOAD_URL, {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.ok) {
+      throw new Error('No se pudo procesar el video.')
+    }
+
+    const data = await response.json()
+
+    progress.value = 100
+
+    result.value = {
+      placa: data.placa,
+      zona: data.zonaMonitoreada,
+      camara: data.camara,
+      tipoVehiculo: data.tipoVehiculo,
+      colorVehiculo: data.colorVehiculo,
+      estado: data.estado,
+      nivelRiesgo: data.nivelRiesgo,
+      frecuenciaIngreso: data.frecuenciaIngreso,
+      esListaNegra: data.esListaNegra,
+      fechaHora: data.fechaHoraDeteccion,
+      criterios: [
+        'Detección en zona monitoreada crítica',
+        'Frecuencia de ingreso superior al patrón normal',
+        'Comportamiento vehicular clasificado como sospechoso',
+        'Alerta enviada al canal de seguridad mediante Telegram'
+      ]
+    }
+  } catch (error) {
+    errorMessage.value = error.message
+  } finally {
+    clearInterval(interval)
+    setTimeout(() => {
+      isAnalyzing.value = false
+    }, 500)
+  }
+}
+</script>
+
+<template>
+    <section class="space-y-6">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-100">Análisis Inteligente de Video</h1>
+                <p class="text-slate-400 mt-2">
+                    Procesamiento de evidencia visual para detectar vehículos sospechosos, generar eventos y alertar al personal de seguridad.
+                </p>
+            </div>
+
+            <span class="px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-400 text-sm font-semibold border border-emerald-500/20">
+                Módulo IA
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div class="xl:col-span-2 bg-slate-800/60 border border-slate-700 rounded-2xl p-6">
+                <h2 class="text-xl font-semibold text-slate-100 mb-2">Carga de video</h2>
+                <p class="text-sm text-slate-400 mb-5">
+                    Seleccione un video proveniente de una cámara de seguridad para simular el análisis automático del sistema.
+                </p>
+
+                <label class="block border-2 border-dashed border-slate-600 rounded-2xl p-8 text-center cursor-pointer hover:border-emerald-500/60 transition">
+                    <input type="file" accept="video/*" class="hidden" @change="handleFileChange" />
+
+                    <div class="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M15.75 10.5 20.25 7.875A.75.75 0 0 1 21.375 8.52v6.96a.75.75 0 0 1-1.125.645L15.75 13.5m-12-6h10.5A1.5 1.5 0 0 1 15.75 9v6A1.5 1.5 0 0 1 14.25 16.5H3.75A1.5 1.5 0 0 1 2.25 15V9A1.5 1.5 0 0 1 3.75 7.5Z" />
+                        </svg>
+                    </div>
+
+                    <p class="text-slate-200 font-semibold">
+                        {{ selectedFile ? selectedFile.name : 'Seleccionar video de vigilancia' }}
+                    </p>
+                    <p class="text-sm text-slate-500 mt-1">
+                        Formatos admitidos: MP4, MOV, AVI
+                    </p>
+                </label>
+
+                <div v-if="videoPreviewUrl" class="mt-6">
+                    <video :src="videoPreviewUrl" controls class="w-full rounded-xl border border-slate-700 bg-black"></video>
+                </div>
+
+                <button @click="analyzeVideo"
+                        :disabled="isAnalyzing"
+                        class="mt-6 w-full px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold transition">
+                    {{ isAnalyzing ? 'Analizando video...' : 'Iniciar análisis inteligente' }}
+                </button>
+
+                <div v-if="isAnalyzing || progress > 0" class="mt-5">
+                    <div class="flex justify-between text-sm text-slate-400 mb-2">
+                        <span>Procesamiento de video</span>
+                        <span>{{ progress }}%</span>
+                    </div>
+                    <div class="w-full h-3 bg-slate-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-500 transition-all duration-300" :style="{ width: progress + '%' }"></div>
+                    </div>
+                </div>
+
+                <p v-if="errorMessage" class="mt-4 text-sm text-red-400">
+                    {{ errorMessage }}
+                </p>
+            </div>
+
+            <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-6">
+                <h2 class="text-xl font-semibold text-slate-100 mb-4">Criterios de sospecha</h2>
+
+                <div class="space-y-3">
+                    <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-700">
+                        <p class="text-sm font-semibold text-slate-200">Alta frecuencia</p>
+                        <p class="text-xs text-slate-500 mt-1">Múltiples ingresos en un periodo corto.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-700">
+                        <p class="text-sm font-semibold text-slate-200">Zona crítica</p>
+                        <p class="text-xs text-slate-500 mt-1">Detección en perímetros o accesos sensibles.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-700">
+                        <p class="text-sm font-semibold text-slate-200">Lista negra</p>
+                        <p class="text-xs text-slate-500 mt-1">Vehículo previamente reportado o restringido.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-700">
+                        <p class="text-sm font-semibold text-slate-200">Horario inusual</p>
+                        <p class="text-xs text-slate-500 mt-1">Actividad fuera del horario operativo normal.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="result" class="bg-slate-800/60 border border-red-500/30 rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-100">Resultado del análisis</h2>
+                    <p class="text-slate-400 text-sm mt-1">Evento sospechoso registrado y notificado automáticamente.</p>
+                </div>
+
+                <span class="px-4 py-2 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-bold text-sm">
+                    RIESGO {{ result.nivelRiesgo }}
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="p-4 bg-slate-900/70 rounded-xl border border-slate-700">
+                    <p class="text-xs uppercase text-slate-500 font-semibold">Placa</p>
+                    <p class="text-xl font-bold text-slate-100 mt-1">{{ result.placa }}</p>
+                </div>
+
+                <div class="p-4 bg-slate-900/70 rounded-xl border border-slate-700">
+                    <p class="text-xs uppercase text-slate-500 font-semibold">Zona</p>
+                    <p class="text-lg font-semibold text-slate-100 mt-1">{{ result.zona }}</p>
+                </div>
+
+                <div class="p-4 bg-slate-900/70 rounded-xl border border-slate-700">
+                    <p class="text-xs uppercase text-slate-500 font-semibold">Cámara</p>
+                    <p class="text-lg font-semibold text-slate-100 mt-1">{{ result.camara }}</p>
+                </div>
+
+                <div class="p-4 bg-slate-900/70 rounded-xl border border-slate-700">
+                    <p class="text-xs uppercase text-slate-500 font-semibold">Estado</p>
+                    <p class="text-lg font-semibold text-red-400 mt-1">{{ result.estado }}</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold text-slate-100 mb-3">Hallazgos detectados</h3>
+                    <ul class="space-y-2">
+                        <li v-for="criterio in result.criterios"
+                            :key="criterio"
+                            class="flex items-start gap-3 text-sm text-slate-300">
+                            <span class="mt-1 w-2 h-2 rounded-full bg-red-400 flex-shrink-0"></span>
+                            {{ criterio }}
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="p-5 rounded-xl bg-red-500/10 border border-red-500/30">
+                    <h3 class="font-bold text-red-300 mb-2">Acción recomendada</h3>
+                    <p class="text-sm text-slate-300">
+                        El evento debe ser revisado por el operador. Si el riesgo se mantiene como crítico, se recomienda escalar la alerta al personal de seguridad o autoridad correspondiente.
+                    </p>
+
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <span class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold">
+                            Evento registrado
+                        </span>
+                        <span class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-semibold">
+                            Telegram notificado
+                        </span>
+                        <span class="px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-semibold">
+                            Revisión prioritaria
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</template>
